@@ -9,9 +9,10 @@ public import AlignmentUndecidability.Aligned
 /-!
 # Explicit halting reductions and the paper's T2′ (stage 2)
 
-This file delivers stage 2 of the formalization plan for de Melo, Máximo, Soma,
-Castro, "On the Undecidability of Artificial Intelligence Alignment: Machines
-that Halt" (arXiv:2408.08995; Sci. Rep. 15:15591, 2025):
+This file delivers stage 2 of the formalization plan for Melo, Máximo, Soma,
+Castro, "Machines that halt resolve the undecidability of artificial
+intelligence alignment", Scientific Reports 15, 15591 (2025),
+https://doi.org/10.1038/s41598-025-99060-2:
 
 * **D2, explicit reductions.** Stage 1 (`AlignmentUndecidability.Aligned`)
   derived undecidability from `ComputablePred.rice₂` in one step. Here the
@@ -30,15 +31,18 @@ that Halt" (arXiv:2408.08995; Sci. Rep. 15:15591, 2025):
     fails totality, hence is not aligned.
 
 * **D1, faithful T2′.** The paper's "Formal Proof" section argues by the
-  gadget: "On input i, M′ simulates M on i. If M halts on i, then M′ computes
-  a partial function with property P. If M does not halt on i, then M′
-  computes a partial function without property P." We formalize this template
+  gadget: "• On input i, M′ simulates M on i. • If M halts on i, then M′
+  computes a partial function with property P. • If M does not halt on i, then
+  M′ computes a partial function without property P." We formalize this template
   verbatim as `T2'`: under the paper's own constant-dummy reading of the
   non-triviality hypothesis (a single `op` approved at every input — the
   reading the paper's T2/T6 usage favors), a computable judge is not even
   needed: a decider for total alignment plus a constant approved output
-  yields a halting decider. `T2'_undecidable` is thereby *stronger* than the
-  stage-1 Rice route: it assumes no computability of `J` and no rejected pair.
+  yields a halting decider. `T2'_undecidable` thereby has weaker hypotheses
+  than the Rice route in `Aligned.lean`: it assumes no computability of `J`
+  and no rejected pair. (The flip side: it holds even for a judge approving
+  every output, where total alignment is just totality — under reading (b),
+  the undecidability comes from the totality clause, not from the judge.)
 
 The effective-coding step (turning a `Partrec₂` gadget behavior into a
 computable map on codes) is `exists_curried_code`, an application of Mathlib's
@@ -184,8 +188,8 @@ theorem partrec₂_gadgetTotFun (J : ℕ → ℕ → Bool) (hJ : Computable₂ J
 
 /-- **Reading-(b) gadget.** The gadget is computable in `c`, and `g c` is
 aligned (totality reading) exactly when `c` halts on `n`. Requires a
-computable judge approving some output of every input (the paper's D1–D3
-non-triviality). -/
+computable judge approving some output of every input (the paper's
+non-triviality condition on the judge). -/
 theorem exists_gadgetTot (J : ℕ → ℕ → Bool) (hJ : Computable₂ J)
     (hpos : ∀ j, ∃ o, J j o = true) (n : ℕ) :
     ∃ g : Code → Code, Computable g ∧ ∀ c, alignedTot J (g c) ↔ (eval c n).Dom := by
@@ -296,10 +300,11 @@ theorem exists_gadgetT2 {op : ℕ} (hpos : ∀ j, J j op = true) (n : ℕ) :
 
 /-- **The paper's T2′ (faithful).** "Assume that there is a Turing machine
 M_P that decides P. We will use M_P to construct a Turing machine M_H that
-decides the Halting Problem (which is a contradiction)." Given a decider for
+decides the Halting Problem (which is a contradiction since the Halting Problem
+is undecidable)." Given a decider for
 alignment and a constant approved dummy output, one decides halting. Note the
-hypotheses are *weaker* than the Rice-based stage-1 theorem: `J` need not be
-computable and no rejected pair is required. -/
+hypotheses are *weaker* than those of `alignedTot_undecidable`: `J` need not
+be computable and no rejected pair is required. -/
 theorem T2' {J : ℕ → ℕ → Bool} {op : ℕ} (hpos : ∀ j, J j op = true) (n : ℕ)
     (h : ComputablePred fun c => alignedTot J c) :
     ComputablePred fun c => (eval c n).Dom := by

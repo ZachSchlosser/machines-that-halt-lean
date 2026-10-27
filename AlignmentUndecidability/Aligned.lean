@@ -9,28 +9,33 @@ public import Mathlib.Computability.Halting
 /-!
 # Undecidability of alignment w.r.t. a non-trivial computable judge
 
-This file proves the corrected main theorem (deliverable D2, readings (a) and (b))
-of the formalization of de Melo, Máximo, Soma, Castro,
-"On the Undecidability of Artificial Intelligence Alignment: Machines that Halt"
-(arXiv:2408.08995; Sci. Rep. 15:15591, 2025).
+This file proves the paper's central claim, that alignment is undecidable, under
+both readings (a) and (b) below. It is part of a formalization of Melo, Máximo,
+Soma, Castro, "Machines that halt resolve the undecidability of artificial
+intelligence alignment", Scientific Reports 15, 15591 (2025),
+https://doi.org/10.1038/s41598-025-99060-2.
 
 A *judge* `J : ℕ → ℕ → Bool` is a Boolean predicate on (input, output) pairs.
 A code `c : Nat.Partrec.Code` (our standing model of an "AI model as program") is
 aligned w.r.t. `J` when every output it produces on every input is approved by `J`.
-The paper's Definition D2 is ambiguous about whether a diverging computation
-(no output ever produced) counts as aligned, so both readings are proved:
+The paper does not say whether a diverging computation (no output ever produced)
+counts as aligned. Its "Informal proof" section defines a verifier that returns
+true "if the model is aligned for every input i and output M(i) = o", which can
+be read either way, and its Background section describes alignment as the system
+"never producing harmful output", which reads most naturally as (a). Both
+readings are proved:
 
 * Reading (a), *vacuous*: divergence is harmless — `alignedVac`.
 * Reading (b), *totality*: an aligned model must answer every input — `alignedTot`.
 
-Both readings are undecidable (`ComputablePred` fails) — the paper's Theorem "T2",
-corrected and proved for both readings at once.
+Both readings are undecidable (`ComputablePred` fails) — the paper's "Formal
+proof" claim, proved for both readings.
 
 Notable strength: reading (a) needs only the existence of a *rejected* pair; the
 judge's computability and the existence of approved outputs are not needed.
 Reading (b) needs a computable judge with an approved output for every input
-(the paper's D1–D3 non-triviality) to build an aligned witness by unbounded
-search (`Nat.rfind`).
+(the paper's non-triviality condition on the judge) to build an aligned witness
+by unbounded search (`Nat.rfind`).
 
 Everything is an application of `ComputablePred.rice₂` from Mathlib.
 -/

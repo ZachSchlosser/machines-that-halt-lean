@@ -9,15 +9,16 @@ public import AlignmentUndecidability.Reduction
 /-!
 # D3: the overclaim refuted — always halting does not make alignment decidable
 
-The paper's closing message (de Melo, Máximo, Soma, Castro, "On the
-Undecidability of Artificial Intelligence Alignment: Machines that Halt",
-arXiv:2408.08995; Sci. Rep. 15:15591, 2025) asserts:
+The paper's closing message (Melo, Máximo, Soma, Castro, "Machines that halt
+resolve the undecidability of artificial intelligence alignment", Scientific
+Reports 15, 15591 (2025), https://doi.org/10.1038/s41598-025-99060-2) asserts:
 
 * Implications (T10): "Ensuring the decidability of the halting property of
   autonomous systems also ensures the decidability of other non-trivial
   properties of such systems, especially their alignment."
 * Final Remarks: "Developing an AI model that always halts allows for the
-  alignment (and other properties) to be asserted computationally."
+  alignment and other properties of the AI model to be asserted
+  computationally."
 
 This file proves the opposite: **no computable function decides alignment even
 when restricted to the class of always-halting models.** The counterexample is
@@ -28,14 +29,12 @@ code `T` with
 
 which is aligned w.r.t. the judge "approve exactly `0`" iff `c` diverges on
 `n`. A promise decider for alignment on total codes would therefore decide
-non-halting — contradicting `ComputablePred.halting_problem_not_re` (non-halting
-is not even recursively enumerable, a strictly stronger refutation than
-undecidability).
+non-halting — contradicting `ComputablePred.halting_problem_not_re`.
 
 This separates the paper's true special case (T5: always halts **and** a
-finite input space — formalized as a promise semi-decision at the end of this
-file) from the false general claim (always halts alone): totality of the model
-does not escape Rice.
+finite input space — formalized as a promise decision procedure at the end of
+this file) from the false general claim (always halts alone): totality of the
+model does not escape Rice.
 -/
 
 open Nat.Partrec (Code)
@@ -144,9 +143,8 @@ theorem simGadget_aligned_iff (n : ℕ) :
 no computable `f` that decides alignment even just on the class of
 always-halting models. The paper's "Developing an AI model that always halts
 allows for the alignment ... to be asserted computationally" asserts the
-reverse of what holds. The contradiction is with `halting_problem_not_re`:
-non-halting is not even recursively enumerable, so no partial decision
-procedure exists either. -/
+reverse of what holds. The contradiction is with `halting_problem_not_re`
+(non-halting is not recursively enumerable). -/
 theorem alwaysHalting_alignment_undecidable :
     ¬ ∃ f : Code → Bool, Computable f ∧
       ∀ c, isTotalCode c → (f c = true ↔ alignedTot judgeZero c) := by
@@ -309,10 +307,10 @@ theorem exists_settling (c : Code) : ∀ (n : ℕ), (∀ i < n, (c.eval i).Dom) 
 finite input bound `N`, the paper's exhaustive check is a partial recursive
 procedure that *halts on every code promised to halt on all inputs below `N`*
 and there decides bounded alignment: "we could check every possible
-combination ... and check if the `J_v(i, o)` results in `1` for every
-combination. Thus, the alignment becomes decidable, though untractable."
+combination ... and verify if the `J_v(i, o)` results in `1` for every
+combination. Thus, the alignment becomes decidable, though intractable."
 
-This is the honest content of the claim: a promise semi-decision over the
+This is the honest content of the claim: a promise decision procedure over the
 halting-on-domain subclass, not a total decider — see
 `alwaysHalting_alignment_undecidable` above. -/
 theorem T5_promise {J : ℕ → ℕ → Bool} (hJ : Computable₂ J) (N : ℕ) :

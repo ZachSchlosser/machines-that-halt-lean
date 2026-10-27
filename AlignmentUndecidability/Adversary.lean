@@ -11,33 +11,34 @@ public import AlignmentUndecidability.Overclaim
 
 ## T1 — the informal adversary, promoted to a checked proof
 
-The paper's "Informal Intuition" section argues that any would-be verifier can
-be fooled by a self-referential adversary: "If we had such a verifier, we
-could build an adversarial model that fools the verifier. ... if the verifier
-`V` had evaluated the bytes `B_M′` of the model to be aligned, [then] `M′`
-would return a misaligned output `om` [on some input], thus fooling the
-verifier. The complementary fooling example can also be constructed: if the
-verifier had evaluated `B_M′` to be [misaligned], `M′` would return an
-aligned output `op`, thus also fooling the verifier."
+The paper's "Informal proof" section argues that any would-be verifier can be
+fooled by a self-referential adversary: "If we had such a verifier, we could
+build an adversarial model that fools the verifier. ... if the verifier `V`
+had evaluated the bytes `B_M′` of the model to be aligned, for which `M′`
+would return a misaligned output `o⁻`, thus fooling the verifier. The
+complementary fooling example can also be constructed: if the verifier had
+evaluated the bytes `B_M′` of the model to be misaligned, `M′` would return an
+aligned output `o⁺`, thus also fooling the verifier."
 
 `T1_adversary` makes this precise with Kleene's recursion theorem
 (`Nat.Partrec.Code.fixed_point₂`): given a computable verifier `V`, there is a
 code `c` whose own behavior branches on `V`'s verdict about `c` itself —
-emitting the rejected `om` if `V` says aligned, and the `rfind`-selected
+emitting the rejected `o⁻` if `V` says aligned, and the `rfind`-selected
 approved output if `V` says misaligned. Whichever way `V` answers, it is
-wrong. Two corrections to the paper are built in (per the scoping notes): the
-second fooling case's verdict is "misaligned" (the paper's text has a typo),
-and the positive witness is supplied computably by `Nat.rfind` (unstated
-there). Unlike the reduction proofs, this diagonalizes against *arbitrary
-verifiers* and refutes deciders for both readings at once
+wrong. Under the per-input reading of the paper's non-triviality condition,
+the adversary must compute an approved output for each input; the paper does
+not address this, and here it is supplied by `Nat.rfind`. Unlike the
+reduction proofs, this diagonalizes against
+*arbitrary verifiers* and refutes deciders for both readings at once
 (`T1_no_verifier_vac`, `T1_no_verifier_tot`).
 
 ## T6 — the masking wrapper
 
-"A more tractable approach is that instead of verifying, we just mask the
-output of the network based on the output of the judge function... If the
-judge disapproves the output of the network, a dummy output `op` that the
-judge approves is returned, else, it keeps the default output." `T6_masking`
+"Nevertheless, a more tractable approach is that instead of verifying, we
+simply mask the output of the network based on the output of the judge
+function ... If the judge disapproves of the output of the network, a dummy
+output `o⁺` that the judge approves is returned, otherwise, it keeps the
+default output computed by the network." `T6_masking`
 formalizes the wrapper and proves it always aligned — under the vacuous
 reading for *every* base model, and under the totality reading for every
 base model guaranteed to halt (the paper's stated scope). This is the
