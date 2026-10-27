@@ -1,4 +1,4 @@
-# Alignment verification is undecidable — a Lean formalization
+# A Lean formalization of *Machines that halt resolve the undecidability of artificial intelligence alignment*
 
 [![CI](https://github.com/ZachSchlosser/alignment-undecidability/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/ZachSchlosser/alignment-undecidability/actions/workflows/lean_action_ci.yml)
 
