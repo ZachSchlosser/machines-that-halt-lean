@@ -168,7 +168,7 @@ per-claim analysis.
 
 ## Credits and license
 
-Formalization: Zach Schlosser, with Claude (Anthropic). All results
+Formalization: Zach Schlosser, with GLM-5.3 and Claude (Anthropic). All results
 formalize and correct the paper of de Melo, Máximo, Soma, Castro
 ([arXiv:2408.08995](https://arxiv.org/abs/2408.08995)); the framing and the
 central claim are theirs. Released under Apache 2.0.
