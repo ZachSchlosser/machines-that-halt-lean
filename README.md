@@ -1,6 +1,6 @@
 # A Lean formalization of *Machines that halt resolve the undecidability of artificial intelligence alignment*
 
-[![CI](https://github.com/ZachSchlosser/alignment-undecidability/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/ZachSchlosser/alignment-undecidability/actions/workflows/lean_action_ci.yml)
+[![CI](https://github.com/ZachSchlosser/machines-that-halt-lean/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/ZachSchlosser/machines-that-halt-lean/actions/workflows/lean_action_ci.yml)
 
 This repository contains a machine-checked proof, in Lean 4 with Mathlib, that
 **no algorithm can verify whether an arbitrary AI model is aligned** — and a
@@ -217,8 +217,8 @@ With the Lean toolchain installed
 ([instructions](https://leanprover-community.github.io/get_started.html)):
 
 ```bash
-git clone https://github.com/ZachSchlosser/alignment-undecidability
-cd alignment-undecidability
+git clone https://github.com/ZachSchlosser/machines-that-halt-lean
+cd machines-that-halt-lean
 lake exe cache get   # download prebuilt Mathlib (a few minutes)
 lake build
 ```
