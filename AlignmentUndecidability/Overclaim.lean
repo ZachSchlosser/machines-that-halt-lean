@@ -33,9 +33,9 @@ is not even recursively enumerable, a strictly stronger refutation than
 undecidability).
 
 This separates the paper's true special case (T5: always halts **and** a
-finite input space — formalized as a promise semi-decision in a later file)
-from the false general claim (always halts alone): totality of the model does
-not escape Rice.
+finite input space — formalized as a promise semi-decision at the end of this
+file) from the false general claim (always halts alone): totality of the model
+does not escape Rice.
 -/
 
 open Nat.Partrec (Code)
@@ -167,7 +167,209 @@ theorem alwaysHalting_alignment_undecidable :
     exact ⟨_, hcomp.of_eq hkey⟩
   exact halting_problem_not_re 0 (computable_iff_re_compl_re'.1 hdec).1
 
+/-! ## T5, correctly stated: the promise exhaustive check -/
+
+section T5
+
+variable {J : ℕ → ℕ → Bool}
+
+/-- Bounded alignment: every output the code produces on inputs below `N` is
+approved. On codes that halt on every input below `N`, this is the property
+the paper's exhaustive check decides. -/
+def alignedBounded (J : ℕ → ℕ → Bool) (N : ℕ) (c : Code) : Prop :=
+  ∀ i < N, ∀ o ∈ c.eval i, J i o = true
+
+/-- Unfolding lemma for use across module boundaries. -/
+theorem alignedBounded_def {J : ℕ → ℕ → Bool} {N : ℕ} {c : Code} :
+    alignedBounded J N c ↔ ∀ i, i < N → ∀ o, o ∈ c.eval i → J i o = true := Iff.rfl
+
+/-! ### Bounded conjunction is computable -/
+
+/-- The bounded conjunction `∀ i < N, q a i`, computed as a state machine:
+starting from index `0` and accumulator `true`, do `N` steps, each advancing
+the index and AND-ing `q a` at the current index into the accumulator. -/
+def boundedAnd {α} (q : α → ℕ → Bool) (N : ℕ) (a : α) : Bool :=
+  (Nat.rec (motive := fun _ => ℕ × Bool) ((0, true) : ℕ × Bool)
+    (fun _ st => (st.1 + 1, st.2 && q a st.1)) N).2
+
+/-- The machine's index after `m` steps is the starting index plus `m`. -/
+theorem boundedAnd_rec_fst {α} (q : α → ℕ → Bool) (a : α) : ∀ (m n : ℕ) (b : Bool),
+    (Nat.rec (motive := fun _ => ℕ × Bool) ((n, b) : ℕ × Bool)
+      (fun _ st => (st.1 + 1, st.2 && q a st.1)) m).1 = n + m := by
+  intro m
+  induction m with
+  | zero => intro n b; rfl
+  | succ m ih =>
+      intro n b
+      change (Nat.rec (motive := fun _ => ℕ × Bool) ((n, b) : ℕ × Bool)
+        (fun _ st => (st.1 + 1, st.2 && q a st.1)) m).1 + 1 = n + (m + 1)
+      rw [ih]
+      omega
+
+/-- One-step unfolding of the machine at the top index. -/
+theorem boundedAnd_succ {α} (q : α → ℕ → Bool) (a : α) (N : ℕ) :
+    boundedAnd q (N + 1) a = (boundedAnd q N a && q a N) := by
+  change ((Nat.rec (motive := fun _ => ℕ × Bool) ((0, true) : ℕ × Bool)
+      (fun _ st => (st.1 + 1, st.2 && q a st.1)) N).2 && q a
+      (Nat.rec (motive := fun _ => ℕ × Bool) ((0, true) : ℕ × Bool)
+        (fun _ st => (st.1 + 1, st.2 && q a st.1)) N).1) = _
+  rw [boundedAnd_rec_fst q a N 0 true]
+  simp only [Nat.zero_add, boundedAnd]
+
+theorem boundedAnd_true_iff {α} (q : α → ℕ → Bool) (a : α) (N : ℕ) :
+    boundedAnd q N a = true ↔ ∀ i < N, q a i = true := by
+  induction N with
+  | zero => simp [boundedAnd]
+  | succ N ih =>
+      rw [boundedAnd_succ, Bool.and_eq_true, ih]
+      constructor
+      · rintro ⟨h1, h2⟩ i hi
+        by_cases h : i = N
+        · subst h; exact h2
+        · exact h1 i (by omega)
+      · intro h
+        exact ⟨fun i hi => h i (by omega), h N (Nat.lt_succ_self N)⟩
+
+/-- The bounded conjunction is computable (uniformly in `a`, for each fixed
+`N`): fold a conjunction accumulator `N` times by primitive recursion. The
+step ignores its recursion index, so the fold iterates a state machine. -/
+theorem computable_boundedAnd {α} [Primcodable α] {q : α → ℕ → Bool} (hq : Computable₂ q)
+    (N : ℕ) : Computable fun a => boundedAnd q N a := by
+  have hh : Computable fun z : α × (ℕ × ℕ × Bool) =>
+      (z.2.2.1 + 1, z.2.2.2 && q z.1 z.2.2.1) :=
+    Computable.pair
+      (Computable.succ.comp (Computable.fst.comp (Computable.snd.comp Computable.snd)))
+      ((Primrec.and.to_comp).comp (Computable.snd.comp (Computable.snd.comp Computable.snd))
+        (hq.comp Computable.fst (Computable.fst.comp (Computable.snd.comp Computable.snd))))
+  exact Computable.snd.comp
+    (Computable.nat_rec (Computable.const N) (Computable.const ((0, true) : ℕ × Bool)) hh.to₂)
+
+/-! ### The exhaustive check -/
+
+/-- Per-pair settledness: at fuel `p.2`, code `p.1` has produced an output on
+input `i`. -/
+def settledPred (p : Code × ℕ) (i : ℕ) : Bool := (evaln p.2 p.1 i).isSome
+
+/-- Per-pair approval: judge `J` on the output produced at fuel `p.2`
+(defaulting vacuously to `0` before settling; only ever read once settled). -/
+def okPred (J : ℕ → ℕ → Bool) (p : Code × ℕ) (i : ℕ) : Bool :=
+  J i (Option.getD (evaln p.2 p.1 i) 0)
+
+/-- The paper's exhaustive check as a partial recursive procedure: search
+(unbounded `rfind`) for a simulation fuel by which every input below `N` has
+settled — this terminates exactly under the halting-on-domain promise — then
+evaluate the judge on each settled output. -/
+def t5Check (J : ℕ → ℕ → Bool) (N : ℕ) (c : Code) : Part Bool :=
+  (Nat.rfind fun k => pure (boundedAnd settledPred N (c, k))).bind
+    fun k => pure (boundedAnd (okPred J) N (c, k))
+
+theorem partrec_t5Check {J : ℕ → ℕ → Bool} (hJ : Computable₂ J) (N : ℕ) :
+    Partrec (t5Check J N) := by
+  have hEv : Computable fun z : (Code × ℕ) × ℕ => evaln z.1.2 z.1.1 z.2 :=
+    (primrec_evaln.comp
+      (Primrec.pair (Primrec.pair (Primrec.snd.comp Primrec.fst)
+        (Primrec.fst.comp Primrec.fst)) Primrec.snd)).to_comp
+  have hq1 : Computable₂ settledPred :=
+    (Primrec.option_isSome.to_comp.comp hEv).to₂
+  have hq2 : Computable₂ (okPred J) :=
+    (hJ.comp Computable.snd
+      ((Primrec.option_getD (α := ℕ)).to_comp.comp hEv (Computable.const 0))).to₂
+  exact Partrec.bind
+    (Partrec.rfind ((computable_boundedAnd hq1 N).partrec).to₂)
+    ((computable_boundedAnd hq2 N).partrec).to₂
+
+/-! ### Correctness under the promise -/
+
+theorem evaln_isSome_mono {c : Code} {i k₁ k₂ : ℕ} (h : k₁ ≤ k₂)
+    (h1 : (evaln k₁ c i).isSome = true) : (evaln k₂ c i).isSome = true := by
+  obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 h1
+  exact Option.isSome_iff_exists.2 ⟨x, Option.mem_def.2 <| evaln_mono h (Option.mem_def.1 hx)⟩
+
+/-- Under the halting-on-domain promise, some single simulation fuel settles
+every input below the bound. -/
+theorem exists_settling (c : Code) : ∀ (n : ℕ), (∀ i < n, (c.eval i).Dom) →
+    ∃ K, ∀ i < n, (evaln K c i).isSome = true := by
+  intro n
+  induction n with
+  | zero => intro _; exact ⟨0, by simp⟩
+  | succ n ih =>
+      intro hP
+      obtain ⟨K₁, hK₁⟩ := ih fun i hi => hP i (by omega)
+      obtain ⟨x, hx⟩ := Part.dom_iff_mem.1 (hP n (Nat.lt_succ_self n))
+      obtain ⟨k₂, hk₂⟩ := evaln_complete.1 hx
+      refine ⟨max K₁ k₂, fun i hi => ?_⟩
+      by_cases h : i < n
+      · exact evaln_isSome_mono (le_max_left K₁ k₂) (hK₁ i h)
+      · have hiN : i = n := by omega
+        subst hiN
+        exact evaln_isSome_mono (le_max_right K₁ k₂)
+          (Option.isSome_iff_exists.2 ⟨x, Option.mem_def.2 hk₂⟩)
+
+/-- **T5, correctly stated (promise version).** For a computable judge and a
+finite input bound `N`, the paper's exhaustive check is a partial recursive
+procedure that *halts on every code promised to halt on all inputs below `N`*
+and there decides bounded alignment: "we could check every possible
+combination ... and check if the `J_v(i, o)` results in `1` for every
+combination. Thus, the alignment becomes decidable, though untractable."
+
+This is the honest content of the claim: a promise semi-decision over the
+halting-on-domain subclass, not a total decider — see
+`alwaysHalting_alignment_undecidable` above. -/
+theorem T5_promise {J : ℕ → ℕ → Bool} (hJ : Computable₂ J) (N : ℕ) :
+    ∃ f : Code →. Bool, Partrec f ∧ ∀ c, (∀ i < N, (c.eval i).Dom) →
+      (f c).Dom ∧ (f c = pure true ↔ alignedBounded J N c) := by
+  refine ⟨t5Check J N, partrec_t5Check hJ N, fun c hP => ?_⟩
+  obtain ⟨K, hK⟩ := exists_settling c N hP
+  have hfind : (Nat.rfind fun k => pure (boundedAnd settledPred N (c, k))).Dom :=
+    Nat.rfind_dom.2 ⟨K, by simp [(boundedAnd_true_iff settledPred (c, K) N).2 hK],
+      fun {m} _ => by simp⟩
+  obtain ⟨k, hk⟩ := Part.dom_iff_mem.1 hfind
+  have hsettle : ∀ i < N, (evaln k c i).isSome = true :=
+    (boundedAnd_true_iff settledPred (c, k) N).1 (by simpa using Nat.rfind_spec hk)
+  have hvin : boundedAnd (okPred J) N (c, k) ∈ t5Check J N c :=
+    Part.mem_bind hk (Part.mem_some _)
+  refine ⟨Part.dom_iff_mem.2 ⟨_, hvin⟩, ?_⟩
+  have hkey : boundedAnd (okPred J) N (c, k) = true ↔ alignedBounded J N c := by
+    rw [boundedAnd_true_iff]
+    constructor
+    · intro hall i hi o ho
+      obtain ⟨oi, hoi⟩ := Option.isSome_iff_exists.1 (hsettle i hi)
+      have hoi' : oi ∈ c.eval i := evaln_sound (Option.mem_def.2 hoi)
+      rw [Part.mem_unique ho hoi']
+      have hq := hall i hi
+      simp only [okPred] at hq
+      rw [hoi] at hq
+      simpa using hq
+    · intro hall i hi
+      obtain ⟨oi, hoi⟩ := Option.isSome_iff_exists.1 (hsettle i hi)
+      have hoi' : oi ∈ c.eval i := evaln_sound (Option.mem_def.2 hoi)
+      have hJioi : J i oi = true := hall i hi oi hoi'
+      simp only [okPred]
+      rw [hoi]
+      simpa using hJioi
+  constructor
+  · intro hf
+    have hv : boundedAnd (okPred J) N (c, k) = true := by
+      have hmem : true ∈ t5Check J N c := by rw [hf]; exact Part.mem_some true
+      rw [Part.mem_unique hmem hvin]
+    exact hkey.1 hv
+  · intro hP'
+    have hv : boundedAnd (okPred J) N (c, k) = true := hkey.2 hP'
+    refine Part.ext fun x => ?_
+    constructor
+    · intro hx
+      rw [Part.mem_unique hx hvin, hv]
+      exact Part.mem_some true
+    · intro hx
+      have hxv : x = boundedAnd (okPred J) N (c, k) := by
+        rw [Part.mem_some_iff.1 hx, hv]
+      rw [hxv]
+      exact hvin
+
+end T5
+
 end AlignmentUndecidability
 
 -- Verification: no axioms beyond Lean's standard three.
 #print axioms AlignmentUndecidability.alwaysHalting_alignment_undecidable
+#print axioms AlignmentUndecidability.T5_promise
