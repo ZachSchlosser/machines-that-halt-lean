@@ -18,4 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: leanprover/lean-action@v1
+      - name: Fail if any proof is incomplete
+        run: |
+          if grep -rn "sorry" AlignmentUndecidability --include="*.lean"; then
+            echo "::error::Found 'sorry' — proofs must be complete before merge"
+            exit 1
+          fi
       - uses: leanprover-community/docgen-action@v1
