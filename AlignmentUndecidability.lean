@@ -1,1 +1,2 @@
 import AlignmentUndecidability.Basic
+import AlignmentUndecidability.Aligned
