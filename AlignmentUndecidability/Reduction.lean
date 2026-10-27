@@ -1,8 +1,9 @@
-module
 /-
-Copyright (c) 2026 alignment-undecidability contributors. All rights reserved.
+Copyright (c) 2026 Zach Schlosser. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Zach Schlosser, Claude (Anthropic)
 -/
+module
 public import AlignmentUndecidability.Aligned
 
 /-!
@@ -250,7 +251,7 @@ variable {J : ℕ → ℕ → Bool}
 template): M′ simulates M on the input in question; if the simulation halts,
 M′ returns the constant dummy positive output `op` (the paper's constant
 reading of its non-triviality hypothesis); if not, M′ diverges. -/
-def gadgetT2Fun (op n : ℕ) : Code → ℕ →. ℕ := fun c j =>
+def gadgetT2Fun (op n : ℕ) : Code → ℕ →. ℕ := fun c _j =>
   (eval c n).bind fun _ => pure op
 
 theorem partrec₂_gadgetT2Fun (op n : ℕ) : Partrec₂ (gadgetT2Fun op n) := by

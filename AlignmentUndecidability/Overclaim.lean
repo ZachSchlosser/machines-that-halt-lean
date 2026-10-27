@@ -1,8 +1,9 @@
-module
 /-
-Copyright (c) 2026 alignment-undecidability contributors. All rights reserved.
+Copyright (c) 2026 Zach Schlosser. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Zach Schlosser, Claude (Anthropic)
 -/
+module
 public import AlignmentUndecidability.Reduction
 
 /-!
@@ -119,7 +120,7 @@ theorem simGadget_aligned_iff (n : ℕ) :
         rw [hk']
         rfl
       have h1 : (1 : ℕ) ∈ eval (g c) k := by
-        rw [heval c k, if_pos hisSome]
+        rw [heval c k, hisSome]
         exact Part.mem_some 1
       have hbad := hout 1 h1
       simp [judgeZero] at hbad
@@ -133,8 +134,7 @@ theorem simGadget_aligned_iff (n : ℕ) :
         have h0 : (evaln j c n).isSome = false := by
           rw [evaln_none_of_not_mem (k := j) hnd]
           rfl
-        rw [heval c j, Part.pure_eq_some, Part.mem_some_iff] at ho
-        rw [if_neg (by intro hcon; rw [h0] at hcon; exact Bool.noConfusion hcon)] at ho
+        rw [heval c j, Part.pure_eq_some, Part.mem_some_iff, h0] at ho
         subst ho
         rfl
 

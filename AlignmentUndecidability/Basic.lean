@@ -1,6 +1,12 @@
-import Mathlib.Computability.Halting
-import Mathlib.Computability.Partrec
-import Mathlib.Computability.RE
+/-
+Copyright (c) 2026 Zach Schlosser. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Zach Schlosser, Claude (Anthropic)
+-/
+module
+public import Mathlib.Computability.Halting
+public import Mathlib.Computability.Partrec
+public import Mathlib.Computability.RE
 
 /-!
 # Smoke test — do the plan's building blocks exist in this Mathlib revision (v4.36.0-rc1)?
