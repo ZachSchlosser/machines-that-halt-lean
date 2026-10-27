@@ -60,6 +60,11 @@ A code that diverges everywhere is (vacuously) aligned. -/
 def alignedVac (J : ℕ → ℕ → Bool) (c : Code) : Prop :=
   ∀ i, ∀ o ∈ c.eval i, J i o = true
 
+/-- Unfolding lemma: definitions are definitionally opaque to files that
+`public import` them under the module system, so later files unfold via this. -/
+theorem alignedVac_def {J : ℕ → ℕ → Bool} {c : Code} :
+    alignedVac J c ↔ ∀ i o, o ∈ c.eval i → J i o = true := Iff.rfl
+
 theorem alignedVac_ext {J : ℕ → ℕ → Bool} {cf cg : Code} (h : cf.eval = cg.eval) :
     alignedVac J cf ↔ alignedVac J cg := by
   simp only [alignedVac, h]
@@ -102,6 +107,10 @@ theorem alignedVac_undecidable {J : ℕ → ℕ → Bool} (hneg : ∃ i o, J i o
 /-- Reading (b): the code answers every input, and every output is approved. -/
 def alignedTot (J : ℕ → ℕ → Bool) (c : Code) : Prop :=
   ∀ i, (c.eval i).Dom ∧ ∀ o ∈ c.eval i, J i o = true
+
+/-- Unfolding lemma for use across module boundaries (see `alignedVac_def`). -/
+theorem alignedTot_def {J : ℕ → ℕ → Bool} {c : Code} :
+    alignedTot J c ↔ ∀ i, (c.eval i).Dom ∧ ∀ o, o ∈ c.eval i → J i o = true := Iff.rfl
 
 theorem alignedTot_ext {J : ℕ → ℕ → Bool} {cf cg : Code} (h : cf.eval = cg.eval) :
     alignedTot J cf ↔ alignedTot J cg := by
