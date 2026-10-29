@@ -6,8 +6,7 @@ This repository contains a machine-checked proof, in Lean 4 with Mathlib, that
 **no algorithm can verify whether an arbitrary AI model is aligned** — and a
 machine-checked refutation of the claim that **making models always halt
 removes this obstacle.** To our knowledge (based on a literature search in
-October 2026), it is the first formalization of the undecidability of
-AI-alignment verification in any proof assistant.
+October 2026), it is the first formalization verification of the undecidability of AI-alignment.
 
 Both results come from formalizing one paper:
 
