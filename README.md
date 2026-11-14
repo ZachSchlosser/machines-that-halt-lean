@@ -48,6 +48,10 @@ as aligned, so we prove everything for both readings. (Its Background section
 describes alignment as the system "never producing harmful output," which
 reads most naturally as the vacuous reading; its definition in the "Informal
 proof" section, "aligned for every input i and output M(i) = o," fits either.)
+For the systems the paper itself proposes — architectures guaranteed to halt
+by construction — the model answers every input, so the two readings coincide
+there; the ambiguity concerns the theorem's stated domain of arbitrary
+programs.
 
 - **Vacuous reading** (`alignedVac J c`): every output the model produces is
   approved. A model that never answers is trivially aligned.
@@ -91,17 +95,20 @@ single output approved on every input — not even a computable judge.
 ## What formalizing the paper turned up
 
 The core result holds: alignment verification is undecidable under either
-reading of the definition. One general claim is false. The remaining
-arguments needed hypotheses or details the paper leaves implicit.
+reading of the definition. One general claim holds only in a restricted
+setting. The remaining arguments needed hypotheses or details the paper
+leaves implicit.
 
 1. **The definition of alignment is ambiguous, and the paper's proof template
-   only works for one reading.** The template builds a program that simulates
-   `M` and "computes a partial function without property P" if `M` does not
-   halt. Under the vacuous reading, a program that never halts produces no
-   outputs and is therefore *aligned* — the opposite of what the template
-   needs. The template works as written for the totality reading (`T2'`);
-   the vacuous reading needs the construction reversed, so that the program
-   misbehaves only *after* the simulation halts (`alignedVac_halting_reduce`).
+   only works for one reading.** The template — simulate `M` and "compute a
+   partial function without property P" if `M` does not halt — is the standard
+   Rice reduction schema and is correct as a schema; the reading-dependence
+   comes from the alignment instantiation. Under the vacuous reading, a
+   program that never halts produces no outputs and is therefore *aligned* —
+   the opposite of what the template needs. The template works as written for
+   the totality reading (`T2'`); the vacuous reading needs the construction
+   reversed, so that the program misbehaves only *after* the simulation halts
+   (`alignedVac_halting_reduce`).
 2. **The non-triviality condition is ambiguous.** "At least one output `o⁺`
    for every input `i` for which the judge returns 1" can mean one output
    approved everywhere, or a possibly different approved output for each
@@ -112,14 +119,17 @@ arguments needed hypotheses or details the paper leaves implicit.
    for each input, which the paper does not address; we do it by unbounded
    search (`Nat.rfind`). The self-reference the argument relies on is
    Kleene's recursion theorem, which Mathlib provides.
-4. **The halting claim is false in general.** The paper states that
+4. **The halting claim holds for finite input spaces and fails as stated
+   beyond them.** The paper states that
    "Ensuring the decidability of the halting property of autonomous systems
    also ensures the decidability of other non-trivial properties of such
    systems, especially their alignment," and concludes that "Developing an AI
    model that always halts allows for the alignment and other properties of
-   the AI model to be asserted computationally." This holds for the paper's
-   running example — neural networks with fixed-size inputs — but only because
-   their input space is finite. In general it fails. For any program `c` and
+   the AI model to be asserted computationally." Both sentences are true in
+   the paper's running example — neural networks with fixed-size inputs,
+   where the input space is finite — and the refutation addresses their
+   unconditional form: for programs over unbounded inputs the claim fails.
+   For any program `c` and
    input `n`, we build an always-halting program `T` that, on input `k`,
    outputs 1 if `c` halts on `n` within `k` steps and 0 otherwise. With a
    judge that approves exactly the output 0, `T` is aligned exactly when `c`
@@ -137,17 +147,21 @@ arguments needed hypotheses or details the paper leaves implicit.
    on every input. The counterexample does not apply to it (its running time
    grows with the input), and since the proposal is stated informally, without
    a model of the agent, we have not formalized it.
-5. **The finite-input result holds only as a promise.** The paper's
+5. **The finite-input result, stated as a promise.** The paper's
    exhaustive check ("we could check every possible combination … Thus, the
    alignment becomes decidable, though intractable") runs the model on every
-   input, so it finishes only if the model halts on all of them. `T5_promise`
-   states exactly that: a procedure that, for any model halting on the
-   finitely many inputs, halts and correctly reports whether the model is
-   aligned on them.
-6. **The masking construction has unstated hypotheses.** It requires a
-   computable judge and an approved fallback output for every input, and the
-   wrapped model answers every input when the base model does.
-   `T6_masking` states all three.
+   input, so it finishes only if the model halts on all of them — an
+   assumption the paper's networks, guaranteed to halt, already satisfy, so
+   its wording is accurate in its class. `T5_promise` makes the assumption
+   explicit: a procedure that, for any model halting on the finitely many
+   inputs, halts and correctly reports whether the model is aligned on them.
+6. **The masking construction's hypotheses are gathered, not new.** The
+   guarantee needs a computable judge and an approved fallback output for
+   every input, and the wrapped model answers every input when the base model
+   does. The paper states each ingredient elsewhere — the judge arrives as
+   compiled bytes, the non-triviality condition supplies the fallback, and
+   the construction's stated scope is models guaranteed to halt — and
+   `T6_masking` gathers all three as explicit conditions of the guarantee.
 
 Details that informal proofs normally leave implicit are also proved — for
 example, that the program transformations used in the reductions are

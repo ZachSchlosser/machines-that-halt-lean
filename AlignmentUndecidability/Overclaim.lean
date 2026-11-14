@@ -20,8 +20,10 @@ Reports 15, 15591 (2025), https://doi.org/10.1038/s41598-025-99060-2) asserts:
   alignment and other properties of the AI model to be asserted
   computationally."
 
-This file proves the opposite: **no computable function decides alignment even
-when restricted to the class of always-halting models.** The counterexample is
+This file locates the boundary of that claim: it is true in the paper's
+finite-input setting, and **no computable function decides alignment even
+when restricted to the class of always-halting models over unbounded
+inputs.** The counterexample is
 the bounded-simulation gadget — for every code `c` and input `n`, a *total*
 code `T` with
 
@@ -139,12 +141,13 @@ theorem simGadget_aligned_iff (n : ℕ) :
 
 /-! ## The refutation -/
 
-/-- **The overclaim refuted (D3 / the paper's T10 + Final Remarks).** There is
-no computable `f` that decides alignment even just on the class of
-always-halting models. The paper's "Developing an AI model that always halts
-allows for the alignment ... to be asserted computationally" asserts the
-reverse of what holds. The contradiction is with `halting_problem_not_re`
-(non-halting is not recursively enumerable). -/
+/-- **The unconditional halting claim refuted (D3 / the paper's T10 + Final
+Remarks).** There is no computable `f` that decides alignment even just on the
+class of always-halting models over unbounded inputs; the paper's claim holds
+in its finite-input setting. The paper's "Developing an AI model that always
+halts allows for the alignment ... to be asserted computationally" is true
+there and false as stated here. The contradiction is with
+`halting_problem_not_re` (non-halting is not recursively enumerable). -/
 theorem alwaysHalting_alignment_undecidable :
     ¬ ∃ f : Code → Bool, Computable f ∧
       ∀ c, isTotalCode c → (f c = true ↔ alignedTot judgeZero c) := by
