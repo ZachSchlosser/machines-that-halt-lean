@@ -64,11 +64,12 @@ programs.
   every answer is approved.
 
 The two readings differ in an important way. Under the vacuous reading,
-undecidability needs only that the judge rejects *something* — the judge does
-real work. Under the totality reading, undecidability holds even for a judge
-that approves every output, because then "aligned" just means "halts on every
-input," which is already undecidable. Results stated for the vacuous reading
-are therefore the ones that say something about judges specifically.
+non-triviality of the alignment property is exactly the judge rejecting
+*something* — the judge does real work. Under the totality reading, the
+property stays non-trivial even for a judge that approves every output,
+because then "aligned" just means "halts on every input," which itself
+separates systems. Results stated for the vacuous reading are therefore the
+ones that say something about judges specifically.
 
 ## What is proved
 
@@ -90,12 +91,19 @@ decidable ("Implications").
 | No single checker decides alignment for every always-halting program | `alwaysHalting_alignment_undecidable` | `Overclaim.lean` |
 | With finitely many inputs, exhaustive checking decides alignment for models that halt on them | `T5_promise` | `Overclaim.lean` |
 
-Each theorem states its hypotheses about the judge. The vacuous-reading
-results need only that the judge rejects at least one pair. The
-totality-reading results need a computable judge that approves some output
-on every input (the Rice version also uses a rejected pair; the reduction
-version does not). The adversary results need all three. `T2'` needs only a
-single output approved on every input — not even a computable judge.
+The two undecidability theorems are stated about systems, not judges: their
+hypothesis is that the alignment property is non-trivial — some system is
+aligned and another is not, the paper's own Background framing. For the
+vacuous reading that condition is exactly the judge rejecting something
+(`alignedVac_nontrivial_iff` proves the equivalence); for the totality
+reading it holds whenever the judge-level conditions hold
+(`alignedTot_nontrivial_of_judge`), and no computability is otherwise
+needed. The construction theorems keep their judge-level hypotheses, since
+the constructions run the judge: the adversary results need a computable
+judge that rejects something and approves some answer on every input, the
+masking wrapper a computable judge with an approved fallback per input,
+`T5_promise` a computable judge, and `T2'` only a single output approved on
+every input — not even a computable judge.
 
 ## What formalizing the paper turned up
 

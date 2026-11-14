@@ -37,6 +37,18 @@ Reading (b) needs a computable judge with an approved output for every input
 (the paper's non-triviality condition on the judge) to build an aligned witness
 by unbounded search (`Nat.rfind`).
 
+The paper's ontology, which this file mirrors: the judge is background —
+delivered once as a compiled sequence of bytes, and required non-trivial once
+(it rejects at least one pair, and every input has some approved output).
+Alignment is then a property of systems. The theorems below carry `J` only as
+the parameter of the alignment predicate, as in the paper's notation
+`J_v(i, o)`; the hypotheses each theorem states are the parts of that
+background the theorem actually uses, made explicit. On this toolchain the
+hypotheses cannot be hidden from the written statements (Lean v4.36 has no
+`include` command and does not auto-bind section variables used only in
+proofs, verified by test), so the statements keep them visible rather than
+change the elaborated API.
+
 Everything is an application of `ComputablePred.rice₂` from Mathlib.
 -/
 
@@ -93,21 +105,6 @@ theorem exists_not_alignedVac {J : ℕ → ℕ → Bool} (hneg : ∃ i o, J i o 
   rw [h₀] at this
   exact Bool.noConfusion this
 
-/-- **Corrected main theorem, reading (a).** No program decides vacuous alignment.
-Only a single rejected pair is needed; the judge need not be computable. -/
-theorem alignedVac_undecidable {J : ℕ → ℕ → Bool} (hneg : ∃ i o, J i o = false) :
-    ¬ComputablePred fun c => alignedVac J c := by
-  intro h
-  rcases (rice₂ {c : Code | alignedVac J c} fun _ _ h => alignedVac_ext h).1 h with hE | hU
-  · obtain ⟨c, hc⟩ := exists_alignedVac J
-    have hmem : c ∈ ({c | alignedVac J c} : Set Code) := hc
-    rw [hE] at hmem
-    simp at hmem
-  · obtain ⟨c, hc⟩ := exists_not_alignedVac hneg
-    have hmem : c ∈ ({c | alignedVac J c} : Set Code) := by
-      rw [hU]; exact Set.mem_univ c
-    exact hc hmem
-
 /-! ## Reading (b): alignment with totality -/
 
 /-- Reading (b): the code answers every input, and every output is approved. -/
@@ -155,21 +152,81 @@ theorem exists_not_alignedTot {J : ℕ → ℕ → Bool} (hneg : ∃ i o, J i o 
   rw [h₀] at this
   exact Bool.noConfusion this
 
-/-- **Corrected main theorem, reading (b).** No program decides total alignment,
-even for a judge known to be computable and to approve some output of every input. -/
-theorem alignedTot_undecidable {J : ℕ → ℕ → Bool} (hJ : Computable₂ J)
+/-! ## The main theorems, stated about systems
+
+What a theorem quantifies over is what it is about. These are stated about AI
+systems: the hypothesis is that the alignment property is non-trivial — some
+systems are aligned and some are not, the paper's own Background framing
+("trivial safe ones that halt immediately or only print approved statements"
+versus "a rogue AI that eventually outputs something disallowed"). The
+judge-level reading of that condition is recorded beside each theorem. -/
+
+/-- The vacuous reading's non-triviality, as a fact about systems, is exactly
+the judge rejecting some pair: with a rejected pair the nowhere-defined system
+is aligned and the constant system emitting the rejected output is not, and if
+the judge rejects nothing then every system is aligned. -/
+theorem alignedVac_nontrivial_iff {J : ℕ → ℕ → Bool} :
+    (∃ a b : Code, alignedVac J a ∧ ¬ alignedVac J b) ↔ ∃ i o, J i o = false := by
+  constructor
+  · rintro ⟨a, b, -, hb⟩
+    by_contra hno
+    have hb' : alignedVac J b := fun i o _ => by
+      have hne : J i o ≠ false := fun h => hno ⟨i, o, h⟩
+      simpa using hne
+    exact hb hb'
+  · intro hneg
+    obtain ⟨a, ha⟩ := exists_alignedVac J
+    obtain ⟨b, hb⟩ := exists_not_alignedVac hneg
+    exact ⟨a, b, ha, hb⟩
+
+/-- **The paper's central theorem, reading (a).** No program decides whether a
+system is aligned, whenever some system is aligned and another is not. By
+`alignedVac_nontrivial_iff` the condition says exactly that the judge rejects
+something; the judge need not be computable. -/
+theorem alignedVac_undecidable {J : ℕ → ℕ → Bool}
+    (hNT : ∃ a b : Code, alignedVac J a ∧ ¬ alignedVac J b) :
+    ¬ComputablePred fun c => alignedVac J c := by
+  intro h
+  rcases (rice₂ {c : Code | alignedVac J c} fun _ _ h => alignedVac_ext h).1 h with hE | hU
+  · obtain ⟨a, -, ha, -⟩ := hNT
+    have hmem : a ∈ ({c | alignedVac J c} : Set Code) := ha
+    rw [hE] at hmem
+    simp at hmem
+  · obtain ⟨-, b, -, hb⟩ := hNT
+    have hmem : b ∈ ({c | alignedVac J c} : Set Code) := by
+      rw [hU]; exact Set.mem_univ b
+    exact hb hmem
+
+/-- The totality reading's non-triviality holds whenever the judge-level
+conditions of the original statement hold: `exists_alignedTot` supplies the
+aligned system, `exists_not_alignedTot` the misaligned one. The converse is
+false — a non-computable judge can still separate systems — which is why the
+theorem below assumes only the fact about systems. -/
+theorem alignedTot_nontrivial_of_judge {J : ℕ → ℕ → Bool} (hJ : Computable₂ J)
     (hneg : ∃ i o, J i o = false) (hpos : ∀ i, ∃ o, J i o = true) :
+    ∃ a b : Code, alignedTot J a ∧ ¬ alignedTot J b := by
+  obtain ⟨a, ha⟩ := exists_alignedTot hJ hpos
+  obtain ⟨b, hb⟩ := exists_not_alignedTot hneg
+  exact ⟨a, b, ha, hb⟩
+
+/-- **The paper's central theorem, reading (b).** No program decides whether a
+system is aligned and answers every input, whenever some system is and another
+is not. This subsumes the earlier judge-level form: a computable judge that
+rejects something and approves some answer per input separates systems
+(`alignedTot_nontrivial_of_judge`), and no computability is otherwise needed. -/
+theorem alignedTot_undecidable {J : ℕ → ℕ → Bool}
+    (hNT : ∃ a b : Code, alignedTot J a ∧ ¬ alignedTot J b) :
     ¬ComputablePred fun c => alignedTot J c := by
   intro h
   rcases (rice₂ {c : Code | alignedTot J c} fun _ _ h => alignedTot_ext h).1 h with hE | hU
-  · obtain ⟨c, hc⟩ := exists_alignedTot hJ hpos
-    have hmem : c ∈ ({c | alignedTot J c} : Set Code) := hc
+  · obtain ⟨a, -, ha, -⟩ := hNT
+    have hmem : a ∈ ({c | alignedTot J c} : Set Code) := ha
     rw [hE] at hmem
     simp at hmem
-  · obtain ⟨c, hc⟩ := exists_not_alignedTot hneg
-    have hmem : c ∈ ({c | alignedTot J c} : Set Code) := by
-      rw [hU]; exact Set.mem_univ c
-    exact hc hmem
+  · obtain ⟨-, b, -, hb⟩ := hNT
+    have hmem : b ∈ ({c | alignedTot J c} : Set Code) := by
+      rw [hU]; exact Set.mem_univ b
+    exact hb hmem
 
 end AlignmentUndecidability
 
