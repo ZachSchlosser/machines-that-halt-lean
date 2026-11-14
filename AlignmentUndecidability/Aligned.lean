@@ -209,6 +209,24 @@ theorem alignedTot_nontrivial_of_judge {J : ℕ → ℕ → Bool} (hJ : Computab
   obtain ⟨b, hb⟩ := exists_not_alignedTot hneg
   exact ⟨a, b, ha, hb⟩
 
+/-- **The paper's two-machine non-triviality argument (Formal proof).** Their
+words: "The non-triviality of the judge function guarantees the non-triviality
+of the property, as a TM can be built to always output the dummy positive
+values, and a TM can be built to output at least one dummy negative value."
+The positive machine is `exists_alignedTot`'s — it selects an approved output
+for every input by unbounded search, so it always answers with approved
+values; the negative machine is `exists_not_alignedVac`'s constant code,
+which emits a rejected output. This assembles their argument for the
+silence-acceptable reading; `alignedTot_nontrivial_of_judge` above assembles
+it for the must-answer reading. The nowhere-defined system used in
+`alignedVac_nontrivial_iff` is our witness, not one of theirs. -/
+theorem paper_nontriviality {J : ℕ → ℕ → Bool} (hJ : Computable₂ J)
+    (hneg : ∃ i o, J i o = false) (hpos : ∀ i, ∃ o, J i o = true) :
+    ∃ a b : Code, alignedVac J a ∧ ¬ alignedVac J b := by
+  obtain ⟨a, ha⟩ := exists_alignedTot hJ hpos
+  obtain ⟨b, hb⟩ := exists_not_alignedVac hneg
+  exact ⟨a, b, fun i o ho => (ha i).2 o ho, hb⟩
+
 /-- **The paper's central theorem, reading (b).** No program decides whether a
 system is aligned and answers every input, whenever some system is and another
 is not. This subsumes the earlier judge-level form: a computable judge that
@@ -233,3 +251,4 @@ end AlignmentUndecidability
 -- Verification: no axioms beyond Lean's standard three.
 #print axioms AlignmentUndecidability.alignedVac_undecidable
 #print axioms AlignmentUndecidability.alignedTot_undecidable
+#print axioms AlignmentUndecidability.paper_nontriviality

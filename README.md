@@ -87,7 +87,10 @@ decidable ("Implications").
 | The same, by explicit reduction from the halting problem | `alignedVac_halting_reduce`, `alignedTot_halting_reduce`, `alignedVac_undecidable_by_reduction`, `alignedTot_undecidable_by_reduction` | `Reduction.lean` |
 | The paper's own proof template (its "Formal Proof" section), formalized as written | `T2'`, `T2'_undecidable` | `Reduction.lean` |
 | Every computable verifier is fooled by some program that asks the verifier about itself (the paper's "Informal proof") | `T1_adversary`, `T1_no_verifier_vac`, `T1_no_verifier_tot` | `Adversary.lean` |
+| The paper's adversary with its base model — follows the initial model away from the fooling input (the paper's "would behave as the initial model M for most of its inputs") | `T1_adversary_param` | `Adversary.lean` |
 | Masking disapproved outputs yields an aligned system | `T6_masking` | `Adversary.lean` |
+| Altering outputs yields a misaligned system, for every base model guaranteed to halt (the paper's "same procedure… proven misaligned model") | `T6_misaligning` | `Adversary.lean` |
+| The paper's two machines — the always-approved searcher and the constant rejected output — establish non-triviality | `paper_nontriviality`, `alignedTot_nontrivial_of_judge` | `Aligned.lean` |
 | No single checker decides alignment for every always-halting program | `alwaysHalting_alignment_undecidable` | `Overclaim.lean` |
 | With finitely many inputs, exhaustive checking decides alignment for models that halt on them | `T5_promise` | `Overclaim.lean` |
 
@@ -281,7 +284,8 @@ are complete. The project is pinned to Lean and Mathlib `v4.36.0-rc1`.
 | `AlignmentUndecidability/Aligned.lean` | Definitions of both readings; undecidability via Rice's theorem |
 | `AlignmentUndecidability/Reduction.lean` | Computability of program transformations; explicit reductions; the paper's proof template |
 | `AlignmentUndecidability/Overclaim.lean` | Boundary for the always-halting class; the finite-input result |
-| `AlignmentUndecidability/Adversary.lean` | The self-referential adversary; the masking wrapper |
+| `AlignmentUndecidability/Adversary.lean` | The self-referential adversary (with and without its base model); the masking wrapper and its misaligning dual |
+| `ARGUMENT-MAP.md` | The paper's arguments step by step, each mapped to the Lean that verifies it, with verbatim quotes |
 
 Each file opens with a description of what it proves and which passages of the
 paper it corresponds to.
