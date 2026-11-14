@@ -7,11 +7,12 @@ module
 public import AlignmentUndecidability.Reduction
 
 /-!
-# D3: the overclaim refuted — always halting does not make alignment decidable
+# D3: the always-halting class — boundary for alignment checking
 
-The paper's closing message (Melo, Máximo, Soma, Castro, "Machines that halt
-resolve the undecidability of artificial intelligence alignment", Scientific
-Reports 15, 15591 (2025), https://doi.org/10.1038/s41598-025-99060-2) asserts:
+The paper's Implications and Final Remarks (Melo, Máximo, Soma, Castro,
+"Machines that halt resolve the undecidability of artificial intelligence
+alignment", Scientific Reports 15, 15591 (2025),
+https://doi.org/10.1038/s41598-025-99060-2) state:
 
 * Implications (T10): "Ensuring the decidability of the halting property of
   autonomous systems also ensures the decidability of other non-trivial
@@ -20,23 +21,22 @@ Reports 15, 15591 (2025), https://doi.org/10.1038/s41598-025-99060-2) asserts:
   alignment and other properties of the AI model to be asserted
   computationally."
 
-This file locates the boundary of that claim: it is true in the paper's
-finite-input setting, and **no computable function decides alignment even
-when restricted to the class of always-halting models over unbounded
-inputs.** The counterexample is
-the bounded-simulation gadget — for every code `c` and input `n`, a *total*
-code `T` with
+The paper's provability program establishes alignment per system — the
+enumerable set of architecturally aligned AIs, the masking wrapper
+(`T6_masking` in `Adversary.lean` machine-checks its guarantee), and the
+exhaustive check over the fixed-size inputs its running example designs in
+(`T5_promise`, at the end of this file). This file machine-checks the
+standard computability fact that bounds the class-level reading of the
+sentences above: **no computable function decides alignment even when
+restricted to the class of always-halting models over unbounded inputs.**
+The proof device is the bounded-simulation gadget — for every code `c` and
+input `n`, a *total* code `T` with
 
     T(k) = if `c` halts on `n` within `k` steps then 1 else 0,
 
 which is aligned w.r.t. the judge "approve exactly `0`" iff `c` diverges on
 `n`. A promise decider for alignment on total codes would therefore decide
 non-halting — contradicting `ComputablePred.halting_problem_not_re`.
-
-This separates the paper's true special case (T5: always halts **and** a
-finite input space — formalized as a promise decision procedure at the end of
-this file) from the false general claim (always halts alone): totality of the
-model does not escape Rice.
 -/
 
 open Nat.Partrec (Code)
@@ -139,15 +139,14 @@ theorem simGadget_aligned_iff (n : ℕ) :
         subst ho
         rfl
 
-/-! ## The refutation -/
+/-! ## The class-level boundary -/
 
-/-- **The unconditional halting claim refuted (D3 / the paper's T10 + Final
-Remarks).** There is no computable `f` that decides alignment even just on the
-class of always-halting models over unbounded inputs; the paper's claim holds
-in its finite-input setting. The paper's "Developing an AI model that always
-halts allows for the alignment ... to be asserted computationally" is true
-there and false as stated here. The contradiction is with
-`halting_problem_not_re` (non-halting is not recursively enumerable). -/
+/-- **The always-halting class boundary (D3).** No computable `f` decides
+alignment over the class of all always-halting models on unbounded inputs —
+a standard computability fact, machine-checked here in the alignment setting.
+The per-system guarantees stand (`T6_masking`), as does the finite-input case
+(`T5_promise`). The contradiction is with `halting_problem_not_re`
+(non-halting is not recursively enumerable). -/
 theorem alwaysHalting_alignment_undecidable :
     ¬ ∃ f : Code → Bool, Computable f ∧
       ∀ c, isTotalCode c → (f c = true ↔ alignedTot judgeZero c) := by

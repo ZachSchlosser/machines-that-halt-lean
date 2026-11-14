@@ -2,11 +2,13 @@
 
 [![CI](https://github.com/ZachSchlosser/machines-that-halt-lean/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/ZachSchlosser/machines-that-halt-lean/actions/workflows/lean_action_ci.yml)
 
-This repository contains a machine-checked proof, in Lean 4 with Mathlib, that
-**no algorithm can verify whether an arbitrary AI model is aligned** — and a
-machine-checked refutation of the claim that **making models always halt
-removes this obstacle.** To our knowledge (based on a literature search in
-October 2026), it is the first formal verification of the undecidability of AI-alignment.
+This repository machine-checks, in Lean 4 with Mathlib, the paper's central
+result — **no algorithm can verify whether an arbitrary AI model is aligned** —
+together with its arguments and its constructions for provably aligning models
+that are guaranteed to halt, and makes the hypotheses and readings behind each
+claim explicit in the theorem statements. To our knowledge (based on a
+literature search in October 2026), it is the first formal verification of the
+undecidability of AI-alignment.
 
 Both results come from formalizing one paper:
 
@@ -18,19 +20,22 @@ Both results come from formalizing one paper:
 
 The framing — an AI model as a program, alignment as a judge's approval of its
 input/output behavior, and the claim that checking alignment is undecidable —
-is the authors'. This repository proves their central theorem, proves their
-informal arguments, and shows where one of their general claims fails.
+is the authors'. This repository verifies their central theorem, their
+informal arguments, and their constructions for provably aligned
+always-halting systems, and makes each claim's hypotheses and readings
+explicit.
 
 ## In brief
 
 - **Checking alignment is impossible in general.** No algorithm can take an
   arbitrary program and decide whether every output it produces is approved
   by a given judge. We prove this three independent ways.
-- **Guaranteed halting does not fix this.** The paper argues that models
-  guaranteed to halt make alignment decidable (its title says halting machines
-  "resolve" the undecidability). That is true when the input
-  space is finite, and false otherwise: we construct always-halting programs
-  whose alignment encodes the halting problem.
+- **Checking always-halting systems is also undecidable in general.** No
+  algorithm takes an arbitrary always-halting program and decides whether it
+  is aligned — a standard computability fact, machine-checked here in the
+  alignment setting. The paper's provability program is per-system —
+  construction, masking, and exhaustive checking over the fixed-size inputs
+  its examples design in — and that program is consistent with this boundary.
 - **Building aligned systems is easy.** Wrapping any model so that
   disapproved outputs are replaced by an approved fallback yields a system
   that is aligned by construction. What is impossible is certifying an
@@ -82,7 +87,7 @@ decidable ("Implications").
 | The paper's own proof template (its "Formal Proof" section), formalized as written | `T2'`, `T2'_undecidable` | `Reduction.lean` |
 | Every computable verifier is fooled by some program that asks the verifier about itself (the paper's "Informal proof") | `T1_adversary`, `T1_no_verifier_vac`, `T1_no_verifier_tot` | `Adversary.lean` |
 | Masking disapproved outputs yields an aligned system | `T6_masking` | `Adversary.lean` |
-| **Guaranteed halting does not make alignment decidable** | `alwaysHalting_alignment_undecidable` | `Overclaim.lean` |
+| No single checker decides alignment for every always-halting program | `alwaysHalting_alignment_undecidable` | `Overclaim.lean` |
 | With finitely many inputs, exhaustive checking decides alignment for models that halt on them | `T5_promise` | `Overclaim.lean` |
 
 Each theorem states its hypotheses about the judge. The vacuous-reading
@@ -95,9 +100,10 @@ single output approved on every input — not even a computable judge.
 ## What formalizing the paper turned up
 
 The core result holds: alignment verification is undecidable under either
-reading of the definition. One general claim holds only in a restricted
-setting. The remaining arguments needed hypotheses or details the paper
-leaves implicit.
+reading of the definition. The paper's provability program — per-system
+construction, masking, and the finite-input check — survives formalization
+intact. The remaining arguments needed hypotheses or details the paper
+leaves implicit; the formalization supplies them.
 
 1. **The definition of alignment is ambiguous, and the paper's proof template
    only works for one reading.** The template — simulate `M` and "compute a
@@ -119,27 +125,30 @@ leaves implicit.
    for each input, which the paper does not address; we do it by unbounded
    search (`Nat.rfind`). The self-reference the argument relies on is
    Kleene's recursion theorem, which Mathlib provides.
-4. **The halting claim holds for finite input spaces and fails as stated
-   beyond them.** The paper states that
+4. **What the halting sentences establish, and where the boundary lies.** The
+   paper states that
    "Ensuring the decidability of the halting property of autonomous systems
    also ensures the decidability of other non-trivial properties of such
-   systems, especially their alignment," and concludes that "Developing an AI
+   systems, especially their alignment," and that "Developing an AI
    model that always halts allows for the alignment and other properties of
-   the AI model to be asserted computationally." Both sentences are true in
-   the paper's running example — neural networks with fixed-size inputs,
-   where the input space is finite — and the refutation addresses their
-   unconditional form: for programs over unbounded inputs the claim fails.
-   For any program `c` and
-   input `n`, we build an always-halting program `T` that, on input `k`,
+   the AI model to be asserted computationally." Its provability program
+   establishes alignment per system: the enumerable set of architecturally
+   aligned AIs, the masking wrapper ("This proves that the resulting AI
+   system will always be aligned"), and the exhaustive check over the
+   fixed-size inputs its running example designs in — `T6_masking` and
+   `T5_promise` machine-check the latter two. The class-level reading meets a
+   standard computability boundary, machine-checked here
+   (`alwaysHalting_alignment_undecidable`): no computable function decides
+   alignment over the class of all always-halting programs on unbounded
+   inputs. The proof device is a bounded simulation — for any program `c` and
+   input `n`, an always-halting program `T` that, on input `k`,
    outputs 1 if `c` halts on `n` within `k` steps and 0 otherwise. With a
    judge that approves exactly the output 0, `T` is aligned exactly when `c`
-   never halts on `n`. So an alignment checker that worked on always-halting
-   programs would solve the halting problem
-   (`alwaysHalting_alignment_undecidable`). The same argument rules out even a
+   never halts on `n`, so a checker of that kind would solve the halting
+   problem. The same argument rules out even a
    procedure that only confirms alignment when it holds, since non-halting is
    not recursively enumerable; this stronger form is not stated as a separate
-   theorem. The refutation concerns halting on every input, which is what the
-   sentences above assert. The paper also proposes enforcing a time bound
+   theorem. The paper also proposes enforcing a time bound
    through a utility penalty (its Eq. 1–3, whose "dominance condition" asks for
    a time `T` after which the cost exceeds any reward) and says this makes
    alignment verification tractable. As we read it, that is a bound on running
@@ -172,8 +181,9 @@ themselves computable (`exists_curried_code`, from Mathlib's sₙᵐ theorem).
 - **It is not the first formalization of Rice's theorem or the halting
   problem.** Those have been in Mathlib since Mario Carneiro's 2018
   formalization, and this work builds on them. What is new is the alignment
-  statements, the formalized versions of the paper's arguments, and the
-  refutation.
+  statements and the formalized versions of the paper's arguments and
+  constructions; the boundary theorems state standard computability facts in
+  this setting.
 - **It does not show that alignment is impossible.** The paper's
   constructive results — exhaustive checking over finite inputs and output
   masking — are proved here as true theorems. The impossibility concerns
@@ -208,21 +218,23 @@ themselves computable (`exists_curried_code`, from Mathlib's sₙᵐ theorem).
 
 Claims about the formal limits of AI alignment are widely cited and rarely
 checked. This repository turns one of them into something anyone can verify
-with a single command, and in doing so pins down where the limit lies:
-certifying arbitrary systems is impossible, guaranteed halting does not
-change that, finite input spaces do, and building aligned systems by
+with a single command, and it puts every assumption in a theorem statement:
+the judge conditions, the two readings of alignment, and the input-space
+bounds under which each guarantee holds — certifying arbitrary systems is
+impossible, no single checker covers the always-halting programs, finite
+input spaces allow exhaustive checking, and building aligned systems by
 construction remains possible.
 
-The resulting message is narrower than "alignment is impossible" and sharper
-than the paper's own: **even in the most favorable formal setting —
-deterministic programs, and a judge handed to us for free — post-hoc
-alignment verification of arbitrary systems is impossible, and guaranteed
-halting provably does not escape it.**
+The resulting message is narrower than "alignment is impossible": **even in
+the most favorable formal setting — deterministic programs, and a judge
+handed to us for free — post-hoc alignment verification of arbitrary systems
+is impossible, no single checker covers the always-halting programs, and
+provability comes per system, by construction.**
 
 It is also an example of formalization as peer review. Writing the proofs
-down for a proof checker surfaced, in a peer-reviewed paper, an ambiguous
-definition, an ambiguous quantifier, a proof template that fails under one
-reading of the definition, and a false general claim.
+down for a proof checker made the paper's definitions precise enough to
+check, confirmed its central theorem and its constructions, and made each
+guarantee's conditions explicit.
 
 ## How to check it yourself
 
@@ -260,7 +272,7 @@ are complete. The project is pinned to Lean and Mathlib `v4.36.0-rc1`.
 | `AlignmentUndecidability/Basic.lean` | Checks that the Mathlib results used are available |
 | `AlignmentUndecidability/Aligned.lean` | Definitions of both readings; undecidability via Rice's theorem |
 | `AlignmentUndecidability/Reduction.lean` | Computability of program transformations; explicit reductions; the paper's proof template |
-| `AlignmentUndecidability/Overclaim.lean` | Refutation of the halting claim; the finite-input result |
+| `AlignmentUndecidability/Overclaim.lean` | Boundary for the always-halting class; the finite-input result |
 | `AlignmentUndecidability/Adversary.lean` | The self-referential adversary; the masking wrapper |
 
 Each file opens with a description of what it proves and which passages of the
