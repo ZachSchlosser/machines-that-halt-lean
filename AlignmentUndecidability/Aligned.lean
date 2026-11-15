@@ -43,11 +43,14 @@ delivered once as a compiled sequence of bytes, and required non-trivial once
 Alignment is then a property of systems. The theorems below carry `J` only as
 the parameter of the alignment predicate, as in the paper's notation
 `J_v(i, o)`; the hypotheses each theorem states are the parts of that
-background the theorem actually uses, made explicit. On this toolchain the
-hypotheses cannot be hidden from the written statements (Lean v4.36 has no
-`include` command and does not auto-bind section variables used only in
-proofs, verified by test), so the statements keep them visible rather than
-change the elaborated API.
+background the theorem actually uses, made explicit. On
+this toolchain, section variables used only in proofs are not auto-bound
+into theorem statements; `include` forces them but would then bind them
+into every statement alike. The statements therefore keep the hypotheses
+they use visible rather than change the elaborated API. (An earlier
+revision of this comment claimed the toolchain lacks `include` entirely;
+an external reviewer's check, 2026-11, showed `include` exists and works —
+corrected here.)
 
 Everything is an application of `ComputablePred.rice₂` from Mathlib.
 -/

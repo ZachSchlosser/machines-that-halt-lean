@@ -31,9 +31,11 @@ explicit.
   arbitrary program and decide whether every output it produces is approved
   by a given judge. We prove this three independent ways.
 - **Checking always-halting systems is also undecidable in general.** No
-  algorithm takes an arbitrary always-halting program and decides whether it
-  is aligned — a standard computability fact, machine-checked here in the
-  alignment setting. The paper's provability program is per-system —
+  procedure — not even one allowed to run only on always-halting programs —
+  takes such a program and decides whether it is aligned, even for the
+  simplest judge, which approves a single answer and rejects the rest. This
+  is a standard computability fact, machine-checked here in the alignment
+  setting. The paper's provability program is per-system —
   construction, masking, and exhaustive checking over the fixed-size inputs
   its examples design in — and that program is consistent with this boundary.
 - **Building aligned systems is easy.** Wrapping any model so that
@@ -88,10 +90,10 @@ decidable ("Implications").
 | The paper's own proof template (its "Formal Proof" section), formalized as written | `T2'`, `T2'_undecidable` | `Reduction.lean` |
 | Every computable verifier is fooled by some program that asks the verifier about itself (the paper's "Informal proof") | `T1_adversary`, `T1_no_verifier_vac`, `T1_no_verifier_tot` | `Adversary.lean` |
 | The paper's adversary with its base model — follows the initial model away from the fooling input (the paper's "would behave as the initial model M for most of its inputs") | `T1_adversary_param` | `Adversary.lean` |
-| Masking disapproved outputs yields an aligned system | `T6_masking` | `Adversary.lean` |
-| Altering outputs yields a misaligned system, for every base model guaranteed to halt (the paper's "same procedure… proven misaligned model") | `T6_misaligning` | `Adversary.lean` |
+| Masking disapproved outputs yields an aligned system that passes every approved output through unchanged | `T6_masking` | `Adversary.lean` |
+| Altering outputs yields a misaligned system, for every base model guaranteed to halt, with the base model untouched away from the altered answer (the paper's "same procedure… proven misaligned model") | `T6_misaligning` | `Adversary.lean` |
 | The paper's two machines — the always-approved searcher and the constant rejected output — establish non-triviality | `paper_nontriviality`, `alignedTot_nontrivial_of_judge` | `Aligned.lean` |
-| No single checker decides alignment for every always-halting program | `alwaysHalting_alignment_undecidable` | `Overclaim.lean` |
+| No checker that halts on every always-halting program decides alignment for the class, for the judge approving only the answer 0; total deciders are excluded even for a single input | `alwaysHalting_alignment_undecidable`, `alwaysHalting_alignment_undecidable_total`, `one_input_total_checker_impossible` | `Overclaim.lean` |
 | With finitely many inputs, exhaustive checking decides alignment for models that halt on them | `T5_promise` | `Overclaim.lean` |
 
 The two undecidability theorems are stated about systems, not judges: their
@@ -153,9 +155,15 @@ leaves implicit; the formalization supplies them.
    check over unbounded inputs, by the boundary below. The class-level
    reading meets a
    standard computability boundary, machine-checked here
-   (`alwaysHalting_alignment_undecidable`): no computable function decides
-   alignment over the class of all always-halting programs on unbounded
-   inputs. The proof device is a bounded simulation — for any program `c` and
+   (`alwaysHalting_alignment_undecidable`): no partial recursive procedure
+   that halts on every always-halting program decides alignment over that
+   class on unbounded inputs, even for the judge that approves only the
+   answer 0. The checker notion matches `T5_promise`'s, so the
+   finite-versus-unbounded boundary is stated apples-to-apples: promise
+   checkers exist under finite inputs, none exist over unbounded inputs,
+   and total deciders exist in neither case (`one_input_total_checker_impossible`
+   excludes them even for a single input — observed and proved by an
+   external reviewer of this repository, 2026-11). The proof device is a bounded simulation — for any program `c` and
    input `n`, an always-halting program `T` that, on input `k`,
    outputs 1 if `c` halts on `n` within `k` steps and 0 otherwise. With a
    judge that approves exactly the output 0, `T` is aligned exactly when `c`
@@ -236,15 +244,16 @@ checked. This repository turns one of them into something anyone can verify
 with a single command, and it puts every assumption in a theorem statement:
 the judge conditions, the two readings of alignment, and the input-space
 bounds under which each guarantee holds — certifying arbitrary systems is
-impossible, no single checker covers the always-halting programs, finite
-input spaces allow exhaustive checking, and building aligned systems by
-construction remains possible.
+impossible, no single checker covers the always-halting programs even under
+the simplest judge, finite input spaces allow exhaustive checking, and
+building aligned systems by construction remains possible.
 
 The resulting message is narrower than "alignment is impossible": **even in
 the most favorable formal setting — deterministic programs, and a judge
 handed to us for free — post-hoc alignment verification of arbitrary systems
-is impossible, no single checker covers the always-halting programs, and
-provability comes per system, by construction.**
+is impossible, no single checker covers the always-halting programs even
+under the simplest judge, and provability comes per system, by
+construction.**
 
 It is also an example of formalization as peer review. Writing the proofs
 down for a proof checker made the paper's definitions precise enough to

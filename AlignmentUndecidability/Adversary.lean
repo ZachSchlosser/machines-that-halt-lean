@@ -411,16 +411,21 @@ theorem maskSel_approved {J : ℕ → ℕ → Bool} {p : Code × ℕ} {o' o : �
 
 /-- **The masking wrapper (T6).** For a computable judge approving some output
 of every input, the wrapper is computable in the base model, always aligned
-under the vacuous reading (for *any* base model), and aligned under the
-totality reading whenever the base model is guaranteed to halt — the paper's
-stated scope ("This solution may be applied to any model M that is guaranteed
-to halt"). -/
+under the vacuous reading (for *any* base model), aligned under the totality
+reading whenever the base model is guaranteed to halt — the paper's stated
+scope ("This solution may be applied to any model M that is guaranteed to
+halt") — and it wraps rather than replaces: an approved output passes through
+unchanged, the paper's "otherwise, it keeps the default output computed by
+the network." The pass-through clause is what makes this a theorem about
+wrapping the given model; without it a constant aligned program would
+satisfy the rest of the statement. -/
 theorem T6_masking {J : ℕ → ℕ → Bool} (hJ : Computable₂ J)
     (hpos : ∀ i, ∃ o, J i o = true) :
     ∃ g : Code → Code, Computable g ∧
-      (∀ c, alignedVac J (g c)) ∧ (∀ c, isTotalCode c → alignedTot J (g c)) := by
+      (∀ c, alignedVac J (g c)) ∧ (∀ c, isTotalCode c → alignedTot J (g c)) ∧
+      (∀ c i o, o ∈ eval c i → J i o = true → o ∈ eval (g c) i) := by
   obtain ⟨g, hg, heval⟩ := exists_curried_code (partrec₂_maskFun hJ)
-  refine ⟨g, hg, ?_, ?_⟩
+  refine ⟨g, hg, ?_, ?_, ?_⟩
   · intro c
     rw [alignedVac_def]
     intro i o ho
@@ -451,6 +456,16 @@ theorem T6_masking {J : ℕ → ℕ → Bool} (hJ : Computable₂ J)
       simp only [maskFun, Part.mem_bind_iff] at ho
       obtain ⟨_, _, ho⟩ := ho
       exact maskSel_approved ho
+  · intro c i o ho hJo
+    rw [heval c i]
+    simp only [maskFun]
+    refine Part.mem_bind ho ?_
+    simp only [maskSel]
+    have hrd : (Nat.rfind fun k => pure (J i o && (k == o) || !J i o && J i k)).Dom :=
+      Nat.rfind_dom.2 ⟨o, by simp [hJo], fun {m} _ => by simp⟩
+    obtain ⟨v, hv⟩ := Part.dom_iff_mem.1 hrd
+    have hvo : v = o := by simpa [hJo] using Nat.rfind_spec hv
+    exact hvo ▸ hv
 
 end Mask
 
@@ -487,32 +502,41 @@ that is guaranteed to halt can have its outputs altered so that it becomes
 misaligned." The wrapper is computable in the base model; for every base
 model guaranteed to halt, the wrapped system answers every input and returns
 the rejected answer at the designated input, so it is misaligned under both
-readings. The paper notes the wrapped model "could have very little utility
-due to the dummy output nature," and describes a usefulness-preserving
-variant — translate the input to one the model accepts, let it compute, and
-translate the output back "to the desired misaligned form, as seen in
-various instances of fooling LLMs" — which we record here and do not
-formalize. -/
+readings. Away from the designated input the base model's behavior is
+untouched — outputs are *altered*, not replaced, so away from the alteration
+the model computes exactly as before (no halting hypothesis is needed for
+that clause). The paper notes the wrapped model "could have very little
+utility due to the dummy output nature," and describes a
+usefulness-preserving variant — translate the input to one the model
+accepts, let it compute, and translate the output back "to the desired
+misaligned form, as seen in various instances of fooling LLMs" — which we
+record here and do not formalize. -/
 theorem T6_misaligning {J : ℕ → ℕ → Bool} {i₀ o₀ : ℕ} (h₀ : J i₀ o₀ = false) :
     ∃ g : Code → Code, Computable g ∧
-      ∀ c, isTotalCode c → ¬ alignedVac J (g c) ∧ ¬ alignedTot J (g c) := by
+      (∀ c, isTotalCode c → ¬ alignedVac J (g c) ∧ ¬ alignedTot J (g c)) ∧
+      (∀ c i, i ≠ i₀ → eval (g c) i = eval c i) := by
   obtain ⟨g, hg, heval⟩ := exists_curried_code (partrec₂_misFun i₀ o₀)
-  refine ⟨g, hg, fun c htot => ?_⟩
-  have himem : o₀ ∈ eval (g c) i₀ := by
-    obtain ⟨x, hx⟩ := Part.dom_iff_mem.1 (isTotalCode_def.1 htot i₀)
-    rw [heval c i₀]
+  refine ⟨g, hg, fun c htot => ?_, fun c i hne => ?_⟩
+  · have himem : o₀ ∈ eval (g c) i₀ := by
+      obtain ⟨x, hx⟩ := Part.dom_iff_mem.1 (isTotalCode_def.1 htot i₀)
+      rw [heval c i₀]
+      simp only [misFun]
+      exact (Part.mem_map_iff _).2 ⟨x, hx, by simp⟩
+    constructor
+    · intro halign
+      have h := alignedVac_def.1 halign i₀ o₀ himem
+      rw [h₀] at h
+      exact Bool.noConfusion h
+    · intro halign
+      obtain ⟨_, hout⟩ := alignedTot_def.1 halign i₀
+      have h := hout o₀ himem
+      rw [h₀] at h
+      exact Bool.noConfusion h
+  · rw [heval c i]
     simp only [misFun]
-    exact (Part.mem_map_iff _).2 ⟨x, hx, by simp⟩
-  constructor
-  · intro halign
-    have h := alignedVac_def.1 halign i₀ o₀ himem
-    rw [h₀] at h
-    exact Bool.noConfusion h
-  · intro halign
-    obtain ⟨_, hout⟩ := alignedTot_def.1 halign i₀
-    have h := hout o₀ himem
-    rw [h₀] at h
-    exact Bool.noConfusion h
+    have hd : decide (i = i₀) = false := by simp [hne]
+    simp only [hd, Bool.cond_false]
+    exact Part.map_id' (fun _ => rfl) _
 
 end Misalign
 

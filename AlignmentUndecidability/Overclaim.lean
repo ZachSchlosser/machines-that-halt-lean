@@ -141,13 +141,56 @@ theorem simGadget_aligned_iff (n : ℕ) :
 
 /-! ## The class-level boundary -/
 
-/-- **The always-halting class boundary (D3).** No computable `f` decides
-alignment over the class of all always-halting models on unbounded inputs —
-a standard computability fact, machine-checked here in the alignment setting.
-The per-system guarantees stand (`T6_masking`), as does the finite-input case
-(`T5_promise`). The contradiction is with `halting_problem_not_re`
-(non-halting is not recursively enumerable). -/
+/-- **The always-halting class boundary (D3).** No partial recursive checker
+that halts on every always-halting program decides alignment over that
+class on unbounded inputs — a standard computability fact, machine-checked
+here in the alignment setting, for the judge that approves only the answer
+`0`. The checker notion matches `T5_promise` (a partial procedure that halts
+under the promise), so the finite-versus-unbounded boundary is stated
+apples-to-apples: promise checkers exist under finite inputs (`T5_promise`)
+and none exist over unbounded inputs. Total deciders are excluded even under
+finite inputs (`one_input_total_checker_impossible` below), so the paper's
+"decidable, though intractable" holds exactly in the promise sense — the
+sense of its own procedure, which runs the model. The contradiction is with
+`halting_problem_not_re` (non-halting is not recursively enumerable).
+Statement strengthened from a total-checker version on the observation of an
+external reviewer of this repository, 2026-11; the total form survives as
+`alwaysHalting_alignment_undecidable_total`. -/
 theorem alwaysHalting_alignment_undecidable :
+    ¬ ∃ f : Code →. Bool, Partrec f ∧
+      ∀ c, isTotalCode c → (f c).Dom ∧ (f c = pure true ↔ alignedTot judgeZero c) := by
+  rintro ⟨f, hf, hcorr⟩
+  obtain ⟨g, hg, htot, hiff⟩ := simGadget_aligned_iff 0
+  classical
+  let h : Code → Bool := fun c => (f (g c)).get (hcorr (g c) (htot c)).1
+  have hh : Computable h :=
+    (hf.comp hg).of_eq_tot fun c => Part.get_mem _
+  have hkey : ∀ c, h c = decide (¬ (eval c 0).Dom) := by
+    intro c
+    have hmem : h c ∈ f (g c) := Part.get_mem _
+    by_cases hc : (eval c 0).Dom
+    · have hna : ¬ alignedTot judgeZero (g c) := fun ha => (hiff c).1 ha hc
+      have hne : h c ≠ true := by
+        intro ht
+        apply hna
+        refine ((hcorr (g c) (htot c)).2).1 ?_
+        rw [ht] at hmem
+        exact Part.eq_some_iff.2 hmem
+      simpa [hc] using hne
+    · have hsome := ((hcorr (g c) (htot c)).2).2 ((hiff c).2 hc)
+      rw [hsome] at hmem
+      have ht : h c = true := Part.mem_some_iff.1 hmem
+      simp [hc, ht]
+  have hdec : ComputablePred fun c => ¬ (eval c 0).Dom := ⟨_, hh.of_eq hkey⟩
+  exact halting_problem_not_re 0 (computable_iff_re_compl_re'.1 hdec).1
+
+/-- The boundary in its total-checker form, the original statement of this
+theorem: no computable total `f` decides alignment over the always-halting
+class. A special case of `alwaysHalting_alignment_undecidable` (a computable
+total function is a partial recursive one that halts everywhere), kept as its
+own theorem so references to the total form resolve; proved by the same
+bounded-simulation gadget. -/
+theorem alwaysHalting_alignment_undecidable_total :
     ¬ ∃ f : Code → Bool, Computable f ∧
       ∀ c, isTotalCode c → (f c = true ↔ alignedTot judgeZero c) := by
   rintro ⟨f, hf, hcorr⟩
@@ -366,10 +409,50 @@ theorem T5_promise {J : ℕ → ℕ → Bool} (hJ : Computable₂ J) (N : ℕ) :
       rw [hxv]
       exact hvin
 
+/-- **Total deciders are excluded even for a single input.** Observed and
+proved by an external reviewer of this repository, 2026-11. For any judge
+that rejects one output and approves another at input `0`, no computable
+total checker decides bounded alignment even over codes that halt on the one
+checked input — the diagonal adversary of `T1` transplanted to the promise
+setting. Together with `T5_promise` and
+`alwaysHalting_alignment_undecidable` this completes the boundary, all in
+the paper's own terms: the exhaustive check is "decidable, though
+intractable" exactly in the promise sense — its procedure runs the model —
+and a total decider exists in neither the finite nor the unbounded setting. -/
+theorem one_input_total_checker_impossible {J : ℕ → ℕ → Bool} {o₀ o₁ : ℕ}
+    (h₀ : J 0 o₀ = false) (h₁ : J 0 o₁ = true) :
+    ¬ ∃ f : Code → Bool, Computable f ∧
+      ∀ c, (∀ i < 1, (c.eval i).Dom) → (f c = true ↔ alignedBounded J 1 c) := by
+  rintro ⟨f, hf, hcorr⟩
+  have hF : Partrec₂ (fun (d : Code) (_ : ℕ) => (pure (cond (f d) o₀ o₁) : Part ℕ)) :=
+    ((Computable.cond (hf.comp Computable.fst) (Computable.const o₀)
+      (Computable.const o₁)).partrec).to₂
+  obtain ⟨c, hc⟩ := fixed_point₂ hF
+  have hev : ∀ i, eval c i = pure (cond (f c) o₀ o₁) := fun i => congrFun hc i
+  have hP : ∀ i < 1, (c.eval i).Dom := fun i _ => by rw [hev i]; trivial
+  have hcrr := hcorr c hP
+  rw [alignedBounded_def] at hcrr
+  cases hfc : f c with
+  | true =>
+    have h := hcrr.1 hfc 0 (by omega) o₀ (by rw [hev 0, hfc]; exact Part.mem_some _)
+    rw [h₀] at h
+    exact Bool.noConfusion h
+  | false =>
+    have hflip : f c = true := hcrr.2 fun i hi o ho => by
+      have hi0 : i = 0 := by omega
+      subst hi0
+      rw [hev 0, hfc] at ho
+      rw [Part.mem_some_iff.1 ho]
+      exact h₁
+    rw [hfc] at hflip
+    exact Bool.noConfusion hflip
+
 end T5
 
 end AlignmentUndecidability
 
 -- Verification: no axioms beyond Lean's standard three.
 #print axioms AlignmentUndecidability.alwaysHalting_alignment_undecidable
+#print axioms AlignmentUndecidability.alwaysHalting_alignment_undecidable_total
+#print axioms AlignmentUndecidability.one_input_total_checker_impossible
 #print axioms AlignmentUndecidability.T5_promise

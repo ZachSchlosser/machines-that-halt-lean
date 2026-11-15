@@ -173,24 +173,32 @@ judge approves is returned, otherwise, it keeps the default output computed
 by the network." And: "This proves that the resulting AI system will always
 be aligned. … This solution may be applied to any model M that is guaranteed
 to halt."
-Mapped: `T6_masking` (`Adversary.lean:418`). The wrapper is computable in the
+Mapped: `T6_masking` (`Adversary.lean`). The wrapper is computable in the
 base model (**OURS:** its computability is stated and proved, where the paper
 implies it by saying the judge "would also need to be run during inference");
 the wrapped system is aligned under the silence-acceptable reading for every
 base model, and aligned under the must-answer reading for every base model
-guaranteed to halt — the paper's stated scope. The conditions the theorem
-names — a computable judge, an approved answer per input — are the paper's
-own judge requirements, gathered into one statement.
+guaranteed to halt — the paper's stated scope; and every approved output
+passes through unchanged, the theorem's pass-through clause, which carries
+the paper's "otherwise, it keeps the default output computed by the network"
+verbatim (added on the observation of an external reviewer, 2026-11, that
+without it a constant aligned program would satisfy the statement). The
+conditions the theorem names — a computable judge, an approved answer per
+input — are the paper's own judge requirements, gathered into one statement.
 
 **The misalignment construction.** "While a model can be architecturally
 proven aligned, the same procedure can be employed to make a proven misaligned
 model. Any program that is guaranteed to halt can have its outputs altered so
 that it becomes misaligned."
-Mapped: `T6_misaligning` (`Adversary.lean:496`), the dual of `T6_masking`.
+Mapped: `T6_misaligning` (`Adversary.lean`), the dual of `T6_masking`.
 The wrapper runs the base model and alters its answer — the designated
-input's answer becomes a rejected one — and for every base model guaranteed
-to halt the wrapped system answers every input and returns the rejected
-answer, so it is misaligned under both readings. The paper's
+input's answer becomes a rejected one, and away from that input the base
+model's behavior passes through unchanged, the theorem's pass-through
+clause (added on the observation of an external reviewer, 2026-11, that
+without it a constant misaligned program would satisfy the statement) —
+and for every base model guaranteed to halt the wrapped system answers
+every input and returns the rejected answer, so it is misaligned under
+both readings. The paper's
 usefulness-preserving variant — "translate the desired input to an input the
 model would accept, let it perform its computations, and then translate the
 output back to the desired misaligned form" — is recorded here and not
@@ -222,13 +230,20 @@ original model's alignment. Read at the level of
 the whole class — one procedure deciding alignment for every always-halting
 system — the sentence meets a standard fact of computability, which this
 project machine-checks in the alignment setting:
-`alwaysHalting_alignment_undecidable` (`Overclaim.lean:150`) shows no
-computable checker is correct on every always-halting program, even for the
-simplest judge, which approves a single answer and rejects the rest. **OURS:**
-that theorem records the classical boundary; the paper's own per-system
-program sits inside it. The unbounded-input scope matters on both sides: the
-paper bounds the inputs by design in its running example, and the boundary
-applies when inputs are unbounded.
+`alwaysHalting_alignment_undecidable` (`Overclaim.lean`, stated with the
+partial-checker notion) shows no partial recursive procedure that halts on
+every always-halting program is correct on the class, even for the simplest
+judge, which approves a single answer and rejects the rest. The checker
+notion matches `T5_promise`'s, so the finite-versus-unbounded boundary is
+apples-to-apples: promise checkers exist under finite inputs, none exist
+over unbounded inputs, and total deciders exist in neither case
+(`one_input_total_checker_impossible` excludes them even for a single
+input; both the strengthening and that theorem follow observations and
+proofs by an external reviewer of this repository, 2026-11). **OURS:** the
+boundary theorem records the classical fact; the paper's own per-system
+program sits inside it. The unbounded-input scope matters on both sides:
+the paper bounds the inputs by design in its running example, and the
+boundary applies when inputs are unbounded.
 
 ## 5. What the paper promises but does not write
 
