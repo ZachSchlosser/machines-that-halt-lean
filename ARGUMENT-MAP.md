@@ -92,7 +92,15 @@ of the TM, as for any two TMs that accept the same language, either both
 satisfice the judge function or neither."
 Mapped: `alignedVac_ext` and `alignedTot_ext` (`Aligned.lean:86,118`) —
 codes with equal evaluation have equal alignment; this extensionality is what
-lets `rice₂` apply.
+lets `rice₂` apply. **OURS:** the condition the proof uses is equality of the
+computed partial functions — same answers on the same inputs — not sameness of
+the accepted language in its standard sense. The two differ: machines that
+accept the same inputs can still produce different outputs, and a judge of
+(input, output) pairs can approve one machine's answers and reject the other's,
+so equality of accepted languages alone would not preserve the alignment
+property. The intended reading of the paper's sentence is sameness of computed
+behavior, outputs included, and the formalization pins that condition, under
+which the argument goes through as written.
 
 **The two-machine non-triviality argument.** "The non-triviality of the judge
 function guarantees the non-triviality of the property, as a TM can be built
@@ -201,11 +209,16 @@ guarantee their alignment, it just guarantees that the alignment problem (and
 other properties) becomes decidable."
 
 These sentences carry two readings, and the verification maps each. Read per
-system — for each model guaranteed to halt, its alignment can be established
-— the sentences hold, and the constructions above are the evidence: the
-exhaustive check decides alignment over the bounded inputs the paper's
-examples design in (`T5_promise`), and the masking wrapper delivers an aligned
-system for any guaranteed-to-halt base (`T6_masking`). Read at the level of
+system, three different statements hold, and the constructions above are the
+evidence for two of them. Any model guaranteed to halt can be wrapped into an
+aligned system — the masking wrapper (`T6_masking`), which proves the paper's
+"resulting AI system will always be aligned" and says nothing about whether
+the base model itself is aligned. Whether a given model is aligned is
+decidable under finite inputs — the exhaustive check over the bounded inputs
+the paper's examples design in (`T5_promise`). Over unbounded inputs, no
+general check for a given model's alignment exists, by the class-level
+boundary below. Constructing an aligned wrapper is not verification of the
+original model's alignment. Read at the level of
 the whole class — one procedure deciding alignment for every always-halting
 system — the sentence meets a standard fact of computability, which this
 project machine-checks in the alignment setting:

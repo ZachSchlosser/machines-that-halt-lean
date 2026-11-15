@@ -143,11 +143,15 @@ leaves implicit; the formalization supplies them.
    systems, especially their alignment," and that "Developing an AI
    model that always halts allows for the alignment and other properties of
    the AI model to be asserted computationally." Its provability program
-   establishes alignment per system: the enumerable set of architecturally
+   delivers aligned systems per system: the enumerable set of architecturally
    aligned AIs, the masking wrapper ("This proves that the resulting AI
-   system will always be aligned"), and the exhaustive check over the
+   system will always be aligned" — the wrapped system, not an assertion
+   about the base model), and the exhaustive check over the
    fixed-size inputs its running example designs in — `T6_masking` and
-   `T5_promise` machine-check the latter two. The class-level reading meets a
+   `T5_promise` machine-check the latter two. Whether a given model itself is
+   aligned is decidable under finite inputs (`T5_promise`) and has no general
+   check over unbounded inputs, by the boundary below. The class-level
+   reading meets a
    standard computability boundary, machine-checked here
    (`alwaysHalting_alignment_undecidable`): no computable function decides
    alignment over the class of all always-halting programs on unbounded
